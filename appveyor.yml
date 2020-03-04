@@ -62,18 +62,19 @@ on_success:
         $releases_url = "https://api.github.com/repos/scharlton2/github_api/releases"
         $access_token = $env:scharlton2_access_token
         
-        $releases_url.GetHashCode()
-        $access_token.GetHashCode()
+        Write-Output "`$releases_url.GetHashCode() = $($releases_url.GetHashCode())"
+        Write-Output "`$access_token.GetHashCode() = $($access_token.GetHashCode())"
 
         # create headers dictionary
         $h = @{"Authorization" = "token $access_token"}
-        $h.GetHashCode()
+        Write-Output "`$h.GetHashCode() = $($h.GetHashCode())"
 
         # get latest release tag
         # GET /repos/:owner/:repo/releases/latest
         # see https://developer.github.com/v3/repos/releases/#get-the-latest-release
         #
         $latest = (Invoke-WebRequest -Uri "$releases_url/latest" -Headers $h).Content | ConvertFrom-Json
-        $latest
-        $lastest.GetHashCode()
+        Write-Output "`$latest:"
+        Write-Output $latest
+        Write-Output "`$latest.GetHashCode() = $($latest.GetHashCode())"
       }
