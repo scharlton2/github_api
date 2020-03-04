@@ -1,0 +1,79 @@
+version: '{branch}-{build}'
+
+skip_tags: true
+
+# To create login to AppVeyor profile and select Account->Encrypt YAML
+environment:
+  scharlton2_access_token:
+    secure: vrrhD2XyE3S2zhEYO2+6UyOE7CPelC5McjxZ1XmX8V3Np+mVNPevAPxwC+5cD7dM
+
+image:
+  - Visual Studio 2013
+
+# called before clone
+init:
+  - ps: |
+      if ($true) {
+        $PSVersionTable
+        Get-ChildItem env:
+      }
+  - echo %APPVEYOR_BUILD_WORKER_IMAGE%
+  - if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" (set GENERATOR="Visual Studio 15 2017 Win64" && set SGEN=vs2017-x64)
+  - if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2015" (set GENERATOR="Visual Studio 14 2015 Win64" && set SGEN=vs2015-x64)
+  - if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2013" (set GENERATOR="Visual Studio 12 2013 Win64" && set SGEN=vs2013-x64)
+  - echo %GENERATOR%
+  - echo %Configuration%
+  - if "%Configuration%"=="Debug"   (set config=debug)
+  - if "%Configuration%"=="Release" (set config=release)
+  - set BUILD_TOOLS=OFF
+  - FOR /F "tokens=3 delims= " %%i in ('echo %APPVEYOR_BUILD_WORKER_IMAGE%') do set YEAR=%%i
+  - echo %YEAR%
+  - ps: $UploadRelease = ($true)
+
+
+# doesn't seem to be able to use environmental vars
+clone_folder: C:\iricdev\lib\src\iriclib-git
+
+configuration:
+##  - Debug
+  - Release
+
+matrix:
+  fast_finish: true
+
+# Note mkdir is from Git (C:\Program Files\Git\usr\bin\mkdir.exe)
+# It might give unexpected results (use md instead)
+#
+# Qt 5.5 only supports VS2013
+before_build:
+  - call "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat" x86_amd64
+
+# build using cmake tools
+build_script:
+  - cd C:\iricdev
+  - if "%Configuration%"=="Debug"   ( echo "Build Debug" )
+  - if "%Configuration%"=="Release" ( echo "Build Release" )
+
+on_success:
+  - ps: |
+      if ($UploadRelease) {
+        # /repos/:owner/:repo/releases
+        #
+        $releases_url = "https://api.github.com/repos/scharlton2/github_api/releases"
+        $access_token = $env:scharlton2_access_token
+        
+        $releases_url.GetHashCode()
+        $access_token.GetHashCode()
+
+        # create headers dictionary
+        $h = @{"Authorization" = "token $access_token"}
+        $h.GetHashCode()
+
+        # get latest release tag
+        # GET /repos/:owner/:repo/releases/latest
+        # see https://developer.github.com/v3/repos/releases/#get-the-latest-release
+        #
+        $latest = (Invoke-WebRequest -Uri "$releases_url/latest" -Headers $h).Content | ConvertFrom-Json
+        $latest
+        $lastest.GetHashCode()
+      }
