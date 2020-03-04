@@ -73,8 +73,42 @@ on_success:
         # GET /repos/:owner/:repo/releases/latest
         # see https://developer.github.com/v3/repos/releases/#get-the-latest-release
         #
-        $latest = (Invoke-WebRequest -Uri "$releases_url/latest" -Headers $h).Content | ConvertFrom-Json
+        $response = Invoke-WebRequest -Uri "$releases_url/latest" -Headers $h
+        Write-Output "`$response:"
+        Write-Output $response
+
+        $latest = $response.Content | ConvertFrom-Json
         Write-Output "`$latest:"
         Write-Output $latest
         Write-Output "`$latest.GetHashCode() = $($latest.GetHashCode())"
+
+        if (! ($latest.tag_name -match "^v(?<major>0|[1-9]\d*)\.(?<minor>[0|1-9]\d*)\.(?<patch>[0|1-9]\d*)$") ) {
+          # partially based on https://semver.org/
+          # must be v + major.minor.patch
+          throw "Bad tag"
+        }
+
+        # create release
+        # POST /repos/:owner/:repo/releases
+        # see https://developer.github.com/v3/repos/releases/#create-a-release
+        #
+        $patch = 1 + $matches["patch"]
+        $create = @{
+          "tag_name"         = "v" + $matches["major"] + "." + $matches["minor"] + "." + $patch;
+          "target_commitish" = "$env:APPVEYOR_REPO_COMMIT";
+          "name"             = "github_api " + $matches["major"] + "." + $matches["minor"] + "." + $patch
+        }
+        Write-Output "`$create:"
+        Write-Output $create
+        Write-Output "`$create.GetHashCode() = $($create.GetHashCode())"
+
+        $create_json = $create | ConvertTo-Json
+        Write-Output "`$create_json:"
+        Write-Output $create_json
+        Write-Output "`$create_json.GetHashCode() = $($create_json.GetHashCode())"
+
+        $release = Invoke-WebRequest -Uri "$releases_url" -Headers $h -Method POST -Body $create_json
+        Write-Output "`$release:"
+        Write-Output $release
+        Write-Output "`$release.GetHashCode() = $($release.GetHashCode())"
       }
