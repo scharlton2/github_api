@@ -91,7 +91,7 @@ on_success:
           "tag_name"         = "v" + $matches["major"] + "." + $matches["minor"] + "." + $patch;
           "target_commitish" = "$env:APPVEYOR_REPO_COMMIT";
           "name"             = "github_api " + $matches["major"] + "." + $matches["minor"] + "." + $patch
-          "draft"            = true
+          "draft"            = $true
         }
         $create_json = $create | ConvertTo-Json
         $release = Invoke-WebRequest -Uri "$releases_url" -Headers $h -Method POST -Body $create_json
