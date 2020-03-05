@@ -67,27 +67,15 @@ on_success:
         #
         $releases_url = "https://api.github.com/repos/scharlton2/github_api/releases"
         $access_token = $env:scharlton2_access_token
-        
-        Write-Output "`$releases_url.GetHashCode() = $($releases_url.GetHashCode())"
-        Write-Output "`$access_token.GetHashCode() = $($access_token.GetHashCode())"
 
         # create headers dictionary
         $h = @{"Authorization" = "token $access_token"}
-        Write-Output "`$h.GetHashCode() = $($h.GetHashCode())"
 
         # get latest release tag
         # GET /repos/:owner/:repo/releases/latest
         # see https://developer.github.com/v3/repos/releases/#get-the-latest-release
         #
-        $response = Invoke-WebRequest -Uri "$releases_url/latest" -Headers $h
-        Write-Output "`$response:"
-        Write-Output $response
-
-        $latest = $response.Content | ConvertFrom-Json
-        Write-Output "`$latest:"
-        Write-Output $latest
-        Write-Output "`$latest.GetHashCode() = $($latest.GetHashCode())"
-
+        $latest = (Invoke-WebRequest -Uri "$releases_url/latest" -Headers $h).Content | ConvertFrom-Json
         if (! ($latest.tag_name -match "^v(?<major>0|[1-9]\d*)\.(?<minor>[0|1-9]\d*)\.(?<patch>[0|1-9]\d*)$") ) {
           # partially based on https://semver.org/
           # must be v + major.minor.patch
@@ -104,19 +92,8 @@ on_success:
           "target_commitish" = "$env:APPVEYOR_REPO_COMMIT";
           "name"             = "github_api " + $matches["major"] + "." + $matches["minor"] + "." + $patch
         }
-        Write-Output "`$create:"
-        Write-Output $create
-        Write-Output "`$create.GetHashCode() = $($create.GetHashCode())"
-
         $create_json = $create | ConvertTo-Json
-        Write-Output "`$create_json:"
-        Write-Output $create_json
-        Write-Output "`$create_json.GetHashCode() = $($create_json.GetHashCode())"
-
         $release = Invoke-WebRequest -Uri "$releases_url" -Headers $h -Method POST -Body $create_json
-        Write-Output "`$release:"
-        Write-Output $release
-        Write-Output "`$release.GetHashCode() = $($release.GetHashCode())"
 
         # upload artifact (asset)
         # POST :server/repos/:owner/:repo/releases/:release_id/assets{?name,label}
@@ -129,13 +106,11 @@ on_success:
           throw "Bad upload_url"
         }
         $upload_uri = $matches[1] + "?name=libs.zip"
-        $bytes = [System.IO.File]::ReadAllBytes("$env:APPVEYOR_BUILD_FOLDER\libs.zip")
         $h["Content-type"] = "application/zip"
+        $bytes = [System.IO.File]::ReadAllBytes("$env:APPVEYOR_BUILD_FOLDER\libs.zip")
         $upload = Invoke-WebRequest -Uri $upload_uri -Headers $h -Method POST -Body $bytes
-        Write-Output "`$upload:"
-        Write-Output $upload
 
         # display download url
-        Get-FileHash .\libs.zip
         Write-Output "$(($upload.Content | ConvertFrom-Json).browser_download_url)"
+        Get-FileHash .\libs.zip
       }
