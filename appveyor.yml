@@ -50,9 +50,15 @@ before_build:
 
 # build using cmake tools
 build_script:
-  - cd C:\iricdev
   - if "%Configuration%"=="Debug"   ( echo "Build Debug" )
-  - if "%Configuration%"=="Release" ( echo "Build Release" )
+  - ps: |
+      if ($env:Configuration -match "Release") {
+        # create artifact
+        md libs
+        Copy-Item .\appveyor.yml .\libs
+        Copy-Item .\README.md .\libs
+        7z a libs.zip .\libs
+      }
 
 on_success:
   - ps: |
@@ -111,4 +117,25 @@ on_success:
         Write-Output "`$release:"
         Write-Output $release
         Write-Output "`$release.GetHashCode() = $($release.GetHashCode())"
+
+        # upload artifact (asset)
+        # POST :server/repos/:owner/:repo/releases/:release_id/assets{?name,label}
+        # see https://developer.github.com/v3/repos/releases/#upload-a-release-asset
+        #
+        $upload_uri = ($release.Content | ConvertFrom-Json).upload_url
+        if (! ($upload_uri -match  "(.*)\{\?name,label\}") ) {
+          # expecting URI{?name,label}
+          # ie https://uploads.github.com/repos/scharlton2/iriclib/releases/24058628/assets{?name,label}
+          throw "Bad upload_url"
+        }
+        $upload_uri = $matches[1] + "?name=libs.zip"
+        $bytes = [System.IO.File]::ReadAllBytes("$env:APPVEYOR_BUILD_FOLDER\libs.zip")
+        $h["Content-type"] = "application/zip"
+        $upload = Invoke-WebRequest -Uri $upload_uri -Headers $h -Method POST -Body $bytes
+        Write-Output "`$upload:"
+        Write-Output $upload
+
+        # display download url
+        Get-FileHash .\libs.zip
+        Write-Output "$(($upload.Content | ConvertFrom-Json).browser_download_url)"
       }
