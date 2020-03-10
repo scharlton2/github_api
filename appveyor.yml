@@ -122,7 +122,7 @@ on_success:
         $release_id = ($release.Content | ConvertFrom-Json).id
         $h.Remove("Content-type")
         $update = @{ "draft" = $false }
-        $update_json = $edit | ConvertTo-Json
+        $update_json = $update | ConvertTo-Json
         $release = Invoke-WebRequest -Uri "$releases_url/$release_id" -Headers $h -Method PATCH -Body $update_json
 
         # display download url
