@@ -5,7 +5,7 @@ skip_tags: true
 # To create login to AppVeyor profile and select Account->Encrypt YAML
 environment:
   scharlton2_access_token:
-    secure: vrrhD2XyE3S2zhEYO2+6UyOE7CPelC5McjxZ1XmX8V3Np+mVNPevAPxwC+5cD7dM
+    secure: dZo8X7uIxkv0RAieGg6J4zNyILq/3RxgzrI3rf4y3CY4rRHKHasO6FxpKI5USzs9
 
 image:
   - Visual Studio 2013
